@@ -18,8 +18,8 @@ class WeiboSpider(RedisSpider):
     redis_key = "weibo_spider:start_urls"
 
     custom_settings = {
-        'CONCURRENT_REQUESTS': 16,
-        "DOWNLOAD_DELAY": 0.1,
+        'CONCURRENT_REQUESTS': 8,
+        "DOWNLOAD_DELAY": 0.2,
     }
 
     # 默认初始解析函数
