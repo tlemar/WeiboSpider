@@ -43,7 +43,16 @@ ITEM_PIPELINES = {
 
 LOCAL_MONGO_HOST = '127.0.0.1'
 LOCAL_MONGO_PORT = 27017
-DB_NAME = 'Sina'
+DB_NAME = 'Sina' 
+
+
+# Postgresql congfig 
+LOCAL_PG_HOST = "127.0.0.1" 
+LOCAL_PG_PORT = 5432 
+PG_USER_NAME = "postgres" 
+PG_USER_PW = "root"  
+PG_DATABASE = "sina"
+
 
 # Redis 配置
 LOCAL_REDIS_HOST = '127.0.0.1'
