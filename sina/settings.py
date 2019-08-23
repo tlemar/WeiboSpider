@@ -28,6 +28,13 @@ DOWNLOADER_MIDDLEWARES = {
 
 }
 
+SPIDER_MIDDLEWARES = {
+
+    # "sina.depth.DepthMiddleware":99,
+    "sina.middlewares.UserDistanceMiddleware":99
+    # "sina.middlewares.DepthMiddleware":100
+}
+
 ITEM_PIPELINES = {
     'sina.pipelines.MongoDBPipeline': 300,
 }
@@ -64,3 +71,31 @@ SCHEDULER_PERSIST = True
 DOWNLOAD_TIMEOUT = 10
 
 RETRY_TIMES = 15
+
+# adjust the scheduler value for different values  
+PRIORITY_TWEET = 0
+PRIORITY_USER = 100
+PRIORITY_COMMENT = 0 
+PRIORITY_RELATIONSHIP = 0
+
+# Miximum Number for Tweet and Comment 
+
+MAXIMUM_PAGE_OF_TWEET = 100 
+MAXIMUM_PAGE_OF_COMMENT = 100  
+MAXIMUM_PAGE_OF_RELATIONSHIP = 100  
+
+# control the link degree 
+MAX_LINK_DEGREE =  2 
+
+# depth contol  
+DEPTH_LIMIT = 0
+DEPTH_STATS_VERBOSE = True
+
+
+# Log settings 
+LOG_LEVEL = "INFO"
+# LOG_FILE = "weibo_spider.log"  
+LOG_FORMAT = "%(name)-12s: %(levelname)-8s %(filename)s  %(funcName)s  ： %(message)s "
+
+
+USER_DISTANCE_LIMIT = 1

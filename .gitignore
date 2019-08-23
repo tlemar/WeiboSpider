@@ -1,2 +1,6 @@
 ghostdriver.log
-captcha.png
+captcha.png 
+
+sina/spiders/__pycache__/
+sina/__pycache__/
+weibo_spider.log
