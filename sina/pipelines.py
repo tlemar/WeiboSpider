@@ -37,16 +37,44 @@ class MongoDBPipeline(object):
             """
             说明有重复数据
             """
-            pass 
+            pass  
+
+
+class DefaultValuePipeline(object):
+
+    def process_item(self,item, spider): 
+        
+        if isinstance(item, InformationItem) :
+            
+            item.setdefault("city","null")
+            item.setdefault("province","null")   
+            item.setdefault("brief_introduction","null")
+            item.setdefault("sentiment","null")
+            item.setdefault("vip_level","null")
+            item.setdefault("authentication","null")
+            item.setdefault("person_url","null")
+            item.setdefault("labels","null")
+            item.setdefault("birthday","1900-01-01")  # 日期类型 
+            item.setdefault("gender","null") 
+            item.setdefault("sex_orientation","null")
+            
+        elif isinstance(item, TweetsItem ) :
+            item.setdefault("tool","null")
+            item.setdefault("image_url","null")
+            item.setdefault("video_url","null")
+            item.setdefault("location","null")
+            item.setdefault("location_map_info","null")
+            item.setdefault("origin_weibo","null")
+
+        spider.logger.info(("default value item", item)) 
+        return item 
+        
 
 
 class PgsqlDBPipeline(object): 
-
-    def init_db(self) : 
-        pass 
         
+    def open_spider(self,spider) : 
         
-    def open_spider(self,spider) :
         hostname = LOCAL_MONGO_HOST 
         username = PG_USER_NAME 
         password = PG_USER_PW 
@@ -54,31 +82,54 @@ class PgsqlDBPipeline(object):
 
         self.conn = psycopg2.connect(host = hostname, user = username, password = password, dbname = database)
         self.cur = self.conn.cursor() 
-        self.information_insert_str = "insert into infomation value({id}, {crawl_time},{nick_name},{gender},{province},\
-            {vip_level},{tweets_num},{follows_num},{fans_num},{city},{brief_introduct},{birthday},{authentication},\
-                {labels},{sex_orientation},{sentiment})" 
-        self.tweet_insert_str = "insert into tweet values({id},{crawl_time},{weib_url},{user_id},{created_at},{tool},\
-            {like_num},{repost_num},{comment_num},{image_url},{content},{video_url},{orgin_weibo})" 
-        self.relationship_insert_str = "insert into relationships value({id},{crawl_time},{fan_id},{followed_id})"  
-        self.comment_insert_str = "insert into comments value ({id},{crawl_time},{weibo_url},{comment_user_id},{content},{like_num},{create_at} )"
+        self.information_insert_str = "insert into information values('{id}','{nick_name}','{gender}','{province}','{city}',\
+          '{brief_introduction}', '{birthday}','{tweets_num}','{follows_num}','{fans_num}','{sex_orientation}','{sentiment}',\
+           '{vip_level}','{authentication}','{person_url}','{labels}','{crawl_time}')" 
+        self.tweet_insert_str = "insert into tweet values('{id}','{weibo_url}','{created_at}','{like_num}','{repost_num}',\
+            '{comment_num}','{content}','{user_id}','{tool}','{image_url}','{video_url}','{location}','{location_map_info}',\
+                '{origin_weibo}','{crawl_time}')" 
+        self.relationship_insert_str = "insert into relationship values({id},{crawl_time},{fan_id},{followed_id})"  
+        self.comment_insert_str = "insert into comment values ({id},'{comment_user_id}','{content}','{weibo_url}',\
+            '{created_at}','{like_num}','{crawl_time}' )"
         
+        spider.logger.info("open spider")
     
     def close_spider(self, spider):
         self.cur.close() 
         self.conn.close() 
 
-    def process_item(self, item,spider):
-        self.cur.execute("")  
-        if isinstance(item, RelationshipsItem) :
-            # 
-            self.cur.execute() 
-        elif isinstance(item, TweetsItem) :
-            # 
-        elif isinstance(item, InformationItem): 
-            # 
-        elif isinstance(item, Comment) : 
-            # 
+    def process_item(self, item,spider): 
         
-        self.conn.commit() 
+        # spider.logger.info(("process_item",item))
+        
+        if isinstance(item, RelationshipsItem) :
+            try :
+                self.cur.execute(self.relationship_insert_str.format_map(dict(item)))  
+                self.conn.commit() 
+            except Exception as e : 
+                spider.logger.error(e)
+                self.conn.rollback() 
+        elif isinstance(item, TweetsItem) :
 
+            spider.logger.info(self.tweet_insert_str.format_map(dict(item)))
+            try :
+                self.cur.execute(self.tweet_insert_str.format_map(dict(item))) 
+                self.conn.commit()
+            except Exception as e : 
+                spider.logger.error(e)
+                self.conn.rollback() 
+        elif isinstance(item, InformationItem): 
+            try:
+                self.cur.execute(self.information_insert_str.format_map(dict(item))) 
+                self.conn.commit()
+            except Exception as e :
+                spider.logger.error(e)
+                self.conn.rollback()
+        elif isinstance(item, CommentItem) : 
+            try :
+                self.cur.execute(self.comment_insert_str.format_map(dict(item))) 
+                self.conn.commit() 
+            except Exception as e : 
+                spider.logger.error(e) 
+                self.conn.rollback()  
         return item

@@ -13,17 +13,16 @@ DEFAULT_REQUEST_HEADERS = {
 
 # CONCURRENT_REQUESTS 和 DOWNLOAD_DELAY 根据账号池大小调整 目前的参数是账号池大小为200
 
-CONCURRENT_REQUESTS = 16
+CONCURRENT_REQUESTS = 10
 
-DOWNLOAD_DELAY = 0.1
-
+DOWNLOAD_DELAY = 0.5
 DOWNLOADER_MIDDLEWARES = {
     'weibo.middlewares.UserAgentMiddleware': None,
     'scrapy.downloadermiddlewares.cookies.CookiesMiddleware': None,
     'scrapy.downloadermiddlewares.redirect.RedirectMiddleware': None,
     'sina.middlewares.CookieMiddleware': 300,
     'sina.middlewares.RedirectMiddleware': 200,
-    'sina.middlewares.IPProxyMiddleware': 100,
+    # 'sina.middlewares.IPProxyMiddleware': 100,
     'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 101,
 
 }
@@ -31,12 +30,14 @@ DOWNLOADER_MIDDLEWARES = {
 SPIDER_MIDDLEWARES = {
 
     # "sina.depth.DepthMiddleware":99,
-    "sina.middlewares.UserDistanceMiddleware":99
+    # "sina.middlewares.UserDistanceMiddleware":99
     # "sina.middlewares.DepthMiddleware":100
 }
 
 ITEM_PIPELINES = {
-    'sina.pipelines.MongoDBPipeline': 300,
+    'sina.pipelines.MongoDBPipeline': 300, 
+    'sina.pipelines.PgsqlDBPipeline':200 ,
+    'sina.pipelines.DefaultValuePipeline':100
 }
 
 # MongoDb 配置

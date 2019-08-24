@@ -33,7 +33,8 @@ class WeiboSpider(RedisSpider):
         information_item = InformationItem()
         information_item['crawl_time'] = int(time.time())
         selector = Selector(response)
-        information_item['_id'] = re.findall('(\d+)/info', response.url)[0]
+        information_item['_id'] = re.findall('(\d+)/info', response.url)[0] 
+        information_item["id"] = information_item["_id"]
         text1 = ";".join(selector.xpath('body/div[@class="c"]//text()').extract())  # 获取标签里的所有text()
         nick_name = re.findall('昵称;?[：:]?(.*?);', text1)
         gender = re.findall('性别;?[：:]?(.*?);', text1)
@@ -151,7 +152,8 @@ class WeiboSpider(RedisSpider):
                 tweet_item['weibo_url'] = 'https://weibo.com/{}/{}'.format(user_tweet_id.group(2),
                                                                            user_tweet_id.group(1))
                 tweet_item['user_id'] = user_tweet_id.group(2)
-                tweet_item['_id'] = '{}_{}'.format(user_tweet_id.group(2), user_tweet_id.group(1))
+                tweet_item['_id'] = '{}_{}'.format(user_tweet_id.group(2), user_tweet_id.group(1)) 
+                tweet_item['id']  = tweet_item['_id']  # to be compatiable with pgsql 
                 create_time_info_node = tweet_node.xpath('.//span[@class="ct"]')[-1]
                 create_time_info = create_time_info_node.xpath('string(.)')
                 if "来自" in create_time_info:
@@ -242,7 +244,8 @@ class WeiboSpider(RedisSpider):
             relationships_item['crawl_time'] = int(time.time())
             relationships_item["fan_id"] = ID
             relationships_item["followed_id"] = uid
-            relationships_item["_id"] = ID + '-' + uid
+            relationships_item["_id"] = ID + '-' + uid 
+            relationships_item["id"] = relationships_item["_id"]
             yield relationships_item 
             ud = response.meta.get("user_distance") 
             if ud < USER_DISTANCE_LIMIT :
@@ -276,7 +279,8 @@ class WeiboSpider(RedisSpider):
             relationships_item['crawl_time'] = int(time.time())
             relationships_item["fan_id"] = uid
             relationships_item["followed_id"] = ID
-            relationships_item["_id"] = uid + '-' + ID
+            relationships_item["_id"] = uid + '-' + ID 
+            relationships_item["id"] = relationships_item["_id"]
             yield relationships_item  
 
             ud = response.meta.get("user_distance")
@@ -310,7 +314,8 @@ class WeiboSpider(RedisSpider):
             comment_item['weibo_url'] = response.meta['weibo_url']
             comment_item['comment_user_id'] = re.search(r'/u/(\d+)', comment_user_url[0]).group(1)
             comment_item['content'] = extract_comment_content(etree.tostring(comment_node, encoding='unicode'))
-            comment_item['_id'] = comment_node.xpath('./@id')[0]
+            comment_item['_id'] = comment_node.xpath('./@id')[0] 
+            comment_item["id"] = comment_item["_id"]
             created_at_info = comment_node.xpath('.//span[@class="ct"]/text()')[0]
             like_num = comment_node.xpath('.//a[contains(text(),"赞[")]/text()')[-1]
             comment_item['like_num'] = int(re.search('\d+', like_num).group())

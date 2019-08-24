@@ -77,8 +77,6 @@ class IPProxyMiddleware(object):
 
 
         
-
-
             
 class UserDistanceMiddleware(object):
     

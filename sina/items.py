@@ -4,7 +4,8 @@ from scrapy import Item, Field
 
 class TweetsItem(Item):
     """ 微博信息 """
-    _id = Field()  # 微博id
+    _id = Field()  # 微博id 
+    id = Field() 
     weibo_url = Field()  # 微博URL
     created_at = Field()  # 微博发表时间
     like_num = Field()  # 点赞数
@@ -18,12 +19,13 @@ class TweetsItem(Item):
     location = Field()  # 定位信息
     location_map_info = Field()  # 定位的经纬度信息
     origin_weibo = Field()  # 原始微博，只有转发的微博才有这个字段
-    crawl_time = Field()  # 抓取时间戳
+    crawl_time = Field()  # 抓取时间戳 
 
 
 class InformationItem(Item):
     """ 个人信息 """
     _id = Field()  # 用户ID
+    id = Field() 
     nick_name = Field()  # 昵称
     gender = Field()  # 性别
     province = Field()  # 所在省
@@ -44,10 +46,11 @@ class InformationItem(Item):
 
 class RelationshipsItem(Item):
     """ 用户关系，只保留与关注的关系 """
-    _id = Field()
+    _id = Field() 
+    id = Field()
     fan_id = Field()  # 关注者,即粉丝的id
     followed_id = Field()  # 被关注者的id
-    crawl_time = Field()  # 抓取时间戳
+    crawl_time = Field()  # 抓取时间戳 
 
 
 class CommentItem(Item):
@@ -55,6 +58,7 @@ class CommentItem(Item):
     微博评论信息
     """
     _id = Field()
+    id = Field() 
     comment_user_id = Field()  # 评论用户的id
     content = Field()  # 评论的内容
     weibo_url = Field()  # 评论的微博的url
