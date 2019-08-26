@@ -34,7 +34,7 @@ class WeiboSpider(RedisSpider):
             self.logger.info("init link degree, user id %s" % meta["root_user"])
         else :
             meta["link_degree"] += 1   
-            self.logger.info("link degree %d, root user is %s, current user is %s % (meta["link_degree"], meta["root_user"], meta["item"]["id"]))
+            self.logger.info("link degree %d, root user is %s, current user is %s " % (meta["link_degree"], meta["root_user"], meta["item"]["id"]))
         return meta 
 
     # 默认初始解析函数
@@ -274,8 +274,8 @@ class WeiboSpider(RedisSpider):
             relationships_item["id"] = relationships_item["_id"]
             yield relationships_item  
 
-           yield Request(self.base_user_url.format_map({"userid":relationships_item["fan_id"]}),callback = self.parse,
-                priority = PRIORITY_USER, meta = response.meta) 
+            yield Request(self.base_user_url.format_map({"userid":relationships_item["fan_id"]}),\
+                callback = self.parse,priority = PRIORITY_USER, meta = response.meta ) 
 
     def parse_comment(self, response):
         # 如果是第1页，一次性获取后面的所有页

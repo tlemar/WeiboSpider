@@ -126,14 +126,14 @@ class PgsqlDBPipeline(object):
     def process_item(self, item,spider): 
         spider.logger.info(("process_item by pgsql saver ",item))
         if isinstance(item, RelationshipsItem) : 
-           try :
+            try :
                 self.cur.execute(self.relationship_insert_str.format_map(dict(item)))  
                 self.conn.commit() 
             except Exception as e : 
                 spider.logger.error(e)
                 self.conn.rollback() 
         elif isinstance(item, TweetsItem) :
-           try :
+            try :
                 self.cur.execute(self.tweet_insert_str.format_map(dict(item))) 
                 self.conn.commit()
             except Exception as e : 
