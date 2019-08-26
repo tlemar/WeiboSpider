@@ -22,9 +22,8 @@ DOWNLOADER_MIDDLEWARES = {
     'scrapy.downloadermiddlewares.redirect.RedirectMiddleware': None,
     'sina.middlewares.CookieMiddleware': 300,
     'sina.middlewares.RedirectMiddleware': 200,
-    # 'sina.middlewares.IPProxyMiddleware': 100,
-    'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 101,
-
+    'sina.middlewares.IPProxyMiddleware': 100,
+    'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 101
 }
 
 SPIDER_MIDDLEWARES = {
@@ -34,11 +33,16 @@ SPIDER_MIDDLEWARES = {
     # "sina.middlewares.DepthMiddleware":100
 }
 
+
+# items go through from lower valued to higher valued classes ,从低到高处理方式 
 ITEM_PIPELINES = {
     'sina.pipelines.MongoDBPipeline': 300, 
-    'sina.pipelines.PgsqlDBPipeline':200 ,
-    'sina.pipelines.DefaultValuePipeline':100
-}
+    'sina.pipelines.PgsqlDBPipeline':500,    # save to db 
+    'sina.pipelines.DefaultValuePipeline':100 ,
+    'sina.pipelines.QQAITextPolarPipeline': 100,
+    "sina.pipelines.ItemValidCheckPipeline":400,
+    "sina.pipelines.EscapePipeline":400
+} 
 
 # MongoDb 配置
 
@@ -84,8 +88,8 @@ RETRY_TIMES = 15
 
 # adjust the scheduler value for different values  
 PRIORITY_TWEET = 0
-PRIORITY_USER = 100
-PRIORITY_COMMENT = 0 
+PRIORITY_USER = 0 
+PRIORITY_COMMENT = 10
 PRIORITY_RELATIONSHIP = 0
 
 # Miximum Number for Tweet and Comment 
@@ -95,7 +99,7 @@ MAXIMUM_PAGE_OF_COMMENT = 100
 MAXIMUM_PAGE_OF_RELATIONSHIP = 100  
 
 # control the link degree 
-MAX_LINK_DEGREE =  2 
+MAX_LINK_DEGREE =  1
 
 # depth contol  
 DEPTH_LIMIT = 0
@@ -104,8 +108,12 @@ DEPTH_STATS_VERBOSE = True
 
 # Log settings 
 LOG_LEVEL = "INFO"
-# LOG_FILE = "weibo_spider.log"  
-LOG_FORMAT = "%(name)-12s: %(levelname)-8s %(filename)s  %(funcName)s  ： %(message)s "
+LOG_FILE = "weibo_spider.log"  
+LOG_FORMAT = "%(name)-12s: %(levelname)-8s %(filename)s  %(funcName)s  ： %(message)s  "
 
 
 USER_DISTANCE_LIMIT = 1
+
+# qqai app config 
+QQAI_APPID = "2121003566" 
+QQAI_APPKEY = "GCjiqiVgOcT5osVx"  

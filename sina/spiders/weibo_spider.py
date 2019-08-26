@@ -12,7 +12,8 @@ from sina.spiders.utils import time_fix, extract_weibo_content, extract_comment_
 import time 
 from sina.settings import PRIORITY_COMMENT, PRIORITY_RELATIONSHIP, PRIORITY_TWEET, PRIORITY_USER 
 from sina.settings import MAXIMUM_PAGE_OF_COMMENT, MAXIMUM_PAGE_OF_TWEET, MAXIMUM_PAGE_OF_RELATIONSHIP  
-from sina.settings import USER_DISTANCE_LIMIT 
+from sina.settings import USER_DISTANCE_LIMIT  
+from sina.settings import MAX_LINK_DEGREE    
 
 
 class WeiboSpider(RedisSpider):
@@ -24,7 +25,17 @@ class WeiboSpider(RedisSpider):
     custom_settings = {
         'CONCURRENT_REQUESTS': 10,
         "DOWNLOAD_DELAY": 0.5,
-    }
+    }  
+
+    def LinkDegreeInc(self, meta) :
+        if "link_degree" not in meta :
+            meta["link_degree"] = 0   
+            meta["root_user"] = meta["item"]["id"]  # 记录根源用户 
+            self.logger.info("init link degree, user id %s" % meta["root_user"])
+        else :
+            meta["link_degree"] += 1   
+            self.logger.info("link degree %d, root user is %s, current user is %s % (meta["link_degree"], meta["root_user"], meta["item"]["id"]))
+        return meta 
 
     # 默认初始解析函数
     def parse(self, response):
@@ -75,11 +86,13 @@ class WeiboSpider(RedisSpider):
         request_meta = response.meta
         request_meta['item'] = information_item 
 
-        request_meta["user"] = False    # 避免增加user distance  
+        request_meta = self.LinkDegreeInc(request_meta) 
         self.logger.info(("parse function :request meta ", response.meta))
+        if request_meta["link_degree"] > MAX_LINK_DEGREE :
+            return False 
         yield Request(self.base_url + '/u/{}'.format(information_item['_id']),
-                      callback=self.parse_further_information,
-                      meta=request_meta, priority=PRIORITY_USER)
+                      callback = self.parse_further_information,
+                      meta = request_meta, priority=PRIORITY_USER)
 
     def parse_further_information(self, response):
         text = response.text
@@ -95,36 +108,18 @@ class WeiboSpider(RedisSpider):
             information_item['fans_num'] = int(fans_num[0])
         yield information_item 
         
-        ud = response.meta.get("user_distance",0) 
-        
-        if ud < USER_DISTANCE_LIMIT : 
-        
-            # 获取该用户微博  
-            r =  Request(url=self.base_url + '/{}/profile?page=1'.format(information_item['_id']),
-                        callback=self.parse_tweet,
-                        priority= PRIORITY_TWEET)
-            r.meta["user_distance"] = ud 
-            yield r 
-            
+        self.logger.info(response.meta)
+        # 获取该用户微博  
+        yield Request(url=self.base_url + '/{}/profile?page=1'.format(information_item['_id']),
+                    callback=self.parse_tweet, priority= PRIORITY_TWEET,meta = response.meta)
 
-            # 获取关注列表
-            r =  Request(url=self.base_url + '/{}/follow?page=1'.format(information_item['_id']),
-                        callback=self.parse_follow,
-                        priority = PRIORITY_RELATIONSHIP 
-                        )
-            r.meta["user_distance"] = ud 
-            yield r 
+        # 获取关注列表
+        yield Request(url=self.base_url + '/{}/follow?page=1'.format(information_item['_id']),
+                    callback=self.parse_follow,priority = PRIORITY_RELATIONSHIP, meta = response.meta)
             
-            # 获取粉丝列表   
-            response.meta["user"] = False  
-            r= Request(url=self.base_url + '/{}/fans?page=1'.format(information_item['_id']),
-                        callback=self.parse_fans, 
-                        priority = PRIORITY_RELATIONSHIP
-                        )
-            r.meta["user_distance"] = ud 
-            yield r 
-        else :
-            self.logger.info("reach the edge of the user limit")
+        # 获取粉丝列表   
+        yield Request(url=self.base_url + '/{}/fans?page=1'.format(information_item['_id']),
+                    callback=self.parse_fans, priority = PRIORITY_RELATIONSHIP ,meta = response.meta )
 
     def parse_tweet(self, response):
         if response.url.endswith('page=1'):
@@ -136,7 +131,6 @@ class WeiboSpider(RedisSpider):
                 for page_num in range(2, min(all_page + 1, MAXIMUM_PAGE_OF_TWEET) ):
                     page_url = response.url.replace('page=1', 'page={}'.format(page_num)) 
 
-                    response.meta["user"] = False  # 通过user字段来识别用户距离 
                     yield Request(page_url, self.parse_tweet, meta=response.meta, priority = PRIORITY_TWEET )
         """
         解析本页的数据
@@ -205,9 +199,10 @@ class WeiboSpider(RedisSpider):
                     yield tweet_item
 
                 # 抓取该微博的评论信息
-                comment_url = self.base_url + '/comment/' + tweet_item['weibo_url'].split('/')[-1] + '?page=1' 
-                yield Request(url=comment_url, callback=self.parse_comment, meta={'weibo_url': tweet_item['weibo_url']},
-                    priority = PRIORITY_COMMENT)
+                comment_url = self.base_url + '/comment/' + tweet_item['weibo_url'].split('/')[-1] + '?page=1'   
+                request_meta = response.meta 
+                request_meta["weibo_url"] = tweet_item["weibo_url"]
+                yield Request(url=comment_url, callback=self.parse_comment, meta=request_meta, priority = PRIORITY_COMMENT)
 
             except Exception as e:
                 self.logger.error(e)
@@ -244,17 +239,13 @@ class WeiboSpider(RedisSpider):
             relationships_item['crawl_time'] = int(time.time())
             relationships_item["fan_id"] = ID
             relationships_item["followed_id"] = uid
-            relationships_item["_id"] = ID + '-' + uid 
-            relationships_item["id"] = relationships_item["_id"]
+            relationships_item["_id"] = ID + '_' + uid 
+            relationships_item["id"] = relationships_item["_id"] 
+            self.logger.info(("relationship item",relationships_item))
             yield relationships_item 
-            ud = response.meta.get("user_distance") 
-            if ud < USER_DISTANCE_LIMIT :
-                r =  Request(self.base_user_url.format_map({"userid": relationships_item["followed_id"]}),callback = self.parse,priority = PRIORITY_USER)
-                r.meta["user"] = True  
-                r.meta["user_distance"] = ud
-                yield r  
-            else :
-                self.logger.info("reach the edge of user distance limit, focus list")
+           
+            yield Request(self.base_user_url.format_map({"userid": relationships_item["followed_id"]}),
+                callback = self.parse,priority = PRIORITY_USER, meta = response.meta)
 
     def parse_fans(self, response):
         """
@@ -283,14 +274,8 @@ class WeiboSpider(RedisSpider):
             relationships_item["id"] = relationships_item["_id"]
             yield relationships_item  
 
-            ud = response.meta.get("user_distance")
-            if ud < USER_DISTANCE_LIMIT :            
-                r = Request(self.base_user_url.format_map({"userid":relationships_item["fan_id"]}),callback = self.parse,priority = PRIORITY_USER) 
-                r.meta["user"] = True 
-                r.meta["user_distance"] = ud 
-                yield r  
-            else:
-                self.logger.info("reach the edge of the use distance limit, fans list")
+           yield Request(self.base_user_url.format_map({"userid":relationships_item["fan_id"]}),callback = self.parse,
+                priority = PRIORITY_USER, meta = response.meta) 
 
     def parse_comment(self, response):
         # 如果是第1页，一次性获取后面的所有页
@@ -320,17 +305,10 @@ class WeiboSpider(RedisSpider):
             like_num = comment_node.xpath('.//a[contains(text(),"赞[")]/text()')[-1]
             comment_item['like_num'] = int(re.search('\d+', like_num).group())
             comment_item['created_at'] = time_fix(created_at_info.split('\xa0')[0])
-            yield comment_item 
+            yield comment_item   
             
-            ud = response.meta.get("user_distance")
-            if ud < USER_DISTANCE_LIMIT :
-                r = Request(self.base_user_url.format_map({"userid":comment_item["comment_user_id"]}),callback = self.parse,priority = PRIORITY_USER)                  
-                r.meta["user_distance"] = response.meta.get("user_distance") 
-                r.meta["user"] = True 
-                return r 
-            else :
-                self.logger.info("reach the edge of user limit, comment page") 
-
+            yield Request(self.base_user_url.format_map({"userid":comment_item["comment_user_id"]}),
+                    callback = self.parse, priority = PRIORITY_USER,meta = response.meta)                  
 
 
 if __name__ == "__main__":
