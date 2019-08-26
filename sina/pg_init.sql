@@ -56,5 +56,7 @@ CREATE table if not EXISTS Comment(
     weibo_url TEXT,
     created_at TIMESTAMP,
     like_num INT,
-    crawl_time BIGINT 
+    crawl_time BIGINT,
+    polar int ,
+    polar_confidence float
 )
