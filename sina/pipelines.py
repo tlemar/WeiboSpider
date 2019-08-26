@@ -4,8 +4,12 @@ from pymongo.errors import DuplicateKeyError
 from sina.items import RelationshipsItem, TweetsItem, InformationItem, CommentItem
 from sina.settings import LOCAL_MONGO_HOST, LOCAL_MONGO_PORT, DB_NAME   
 
-from sina.settings import LOCAL_PG_HOST, LOCAL_PG_PORT , PG_USER_NAME , PG_USER_PW ,PG_DATABASE 
+from sina.settings import LOCAL_PG_HOST, LOCAL_PG_PORT , PG_USER_NAME , PG_USER_PW ,PG_DATABASE  
+from sina.settings import QQAI_APPID, QQAI_APPKEY 
 import psycopg2 
+
+import qqai
+import re 
 
 
 class MongoDBPipeline(object):
@@ -40,12 +44,20 @@ class MongoDBPipeline(object):
             pass  
 
 
+class EscapePipeline(object):
+    def process_item( self,item,spider) :
+        if 'content' in item:  
+            item["content"] = item["content"].replace("'"," ")  
+        if isinstance(item,InformationItem) : 
+            item["brief_introduction"] = item["brief_introduction"].replace("'"," ")  
+        return item
+             
+
+
 class DefaultValuePipeline(object):
 
     def process_item(self,item, spider): 
-        
         if isinstance(item, InformationItem) :
-            
             item.setdefault("city","null")
             item.setdefault("province","null")   
             item.setdefault("brief_introduction","null")
@@ -69,7 +81,21 @@ class DefaultValuePipeline(object):
         spider.logger.info(("default value item", item)) 
         return item 
         
-
+class ItemValidCheckPipeline(object): 
+    def __init__(self):
+        datepattern = '([12]\d{3}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]))'
+        self.datePattern = re.compile(datepattern)
+    
+    def _date_validate(self,date_str) : 
+        if self.datePattern.match(date_str) :
+            return True 
+        return False 
+    
+    def process_item(self, item, spider):
+        if isinstance(item, InformationItem): 
+            if not self._date_validate(item["birthday"]):
+                item["birthday"] = "1900-01-01"
+        return item
 
 class PgsqlDBPipeline(object): 
         
@@ -88,31 +114,26 @@ class PgsqlDBPipeline(object):
         self.tweet_insert_str = "insert into tweet values('{id}','{weibo_url}','{created_at}','{like_num}','{repost_num}',\
             '{comment_num}','{content}','{user_id}','{tool}','{image_url}','{video_url}','{location}','{location_map_info}',\
                 '{origin_weibo}','{crawl_time}')" 
-        self.relationship_insert_str = "insert into relationship values({id},{crawl_time},{fan_id},{followed_id})"  
+        self.relationship_insert_str = "insert into relationship values('{id}','{fan_id}','{followed_id}','{crawl_time}')"  
         self.comment_insert_str = "insert into comment values ({id},'{comment_user_id}','{content}','{weibo_url}',\
-            '{created_at}','{like_num}','{crawl_time}' )"
+            '{created_at}','{like_num}','{crawl_time}','{polar}','{polar_confidence}')" 
         
-        spider.logger.info("open spider")
     
     def close_spider(self, spider):
         self.cur.close() 
         self.conn.close() 
 
     def process_item(self, item,spider): 
-        
-        # spider.logger.info(("process_item",item))
-        
-        if isinstance(item, RelationshipsItem) :
-            try :
+        spider.logger.info(("process_item by pgsql saver ",item))
+        if isinstance(item, RelationshipsItem) : 
+           try :
                 self.cur.execute(self.relationship_insert_str.format_map(dict(item)))  
                 self.conn.commit() 
             except Exception as e : 
                 spider.logger.error(e)
                 self.conn.rollback() 
         elif isinstance(item, TweetsItem) :
-
-            spider.logger.info(self.tweet_insert_str.format_map(dict(item)))
-            try :
+           try :
                 self.cur.execute(self.tweet_insert_str.format_map(dict(item))) 
                 self.conn.commit()
             except Exception as e : 
@@ -132,4 +153,25 @@ class PgsqlDBPipeline(object):
             except Exception as e : 
                 spider.logger.error(e) 
                 self.conn.rollback()  
+
+        return item 
+
+
+class QQAITextPolarPipeline(object): 
+    
+    def __init__(self):
+        self.handler = qqai.nlp.text.TextPolar(QQAI_APPID, QQAI_APPKEY) 
+    
+    def process_item(self,item, spider) : 
+
+        if isinstance(item, CommentItem) : 
+            try :
+                result = self.handler.run(item["content"][:60])  # 仅能够处理69个字符串
+                if result['ret'] == 0 :
+                    item["polar"]  = result["data"]["polar"] 
+                    item["polar_confidence"] = result["data"]["confd"]   
+            except Exception as e : 
+                item["polar"] = "null" 
+                item["polar_confidence"] = "null"
+                spider.logger.error(("textpolar", e))  
         return item
