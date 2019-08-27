@@ -115,7 +115,7 @@ class PgsqlDBPipeline(object):
             '{comment_num}','{content}','{user_id}','{tool}','{image_url}','{video_url}','{location}','{location_map_info}',\
                 '{origin_weibo}','{crawl_time}')" 
         self.relationship_insert_str = "insert into relationship values('{id}','{fan_id}','{followed_id}','{crawl_time}')"  
-        self.comment_insert_str = "insert into comment values ({id},'{comment_user_id}','{content}','{weibo_url}',\
+        self.comment_insert_str = "insert into comment values ('{id}','{comment_user_id}','{content}','{weibo_url}',\
             '{created_at}','{like_num}','{crawl_time}','{polar}','{polar_confidence}')" 
         
     
