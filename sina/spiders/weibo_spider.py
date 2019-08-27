@@ -24,7 +24,7 @@ class WeiboSpider(RedisSpider):
 
     custom_settings = {
         'CONCURRENT_REQUESTS': 10,
-        "DOWNLOAD_DELAY": 0.5,
+        "DOWNLOAD_DELAY": 0.3,
     }  
 
     def LinkDegreeInc(self, meta) :
@@ -87,7 +87,7 @@ class WeiboSpider(RedisSpider):
         request_meta['item'] = information_item 
 
         request_meta = self.LinkDegreeInc(request_meta) 
-        self.logger.info(("parse function :request meta ", response.meta))
+        # self.logger.info(("parse function :request meta ", response.meta))
         if request_meta["link_degree"] > MAX_LINK_DEGREE :
             return False 
         yield Request(self.base_url + '/u/{}'.format(information_item['_id']),
@@ -108,7 +108,6 @@ class WeiboSpider(RedisSpider):
             information_item['fans_num'] = int(fans_num[0])
         yield information_item 
         
-        self.logger.info(response.meta)
         # 获取该用户微博  
         yield Request(url=self.base_url + '/{}/profile?page=1'.format(information_item['_id']),
                     callback=self.parse_tweet, priority= PRIORITY_TWEET,meta = response.meta)

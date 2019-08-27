@@ -78,7 +78,7 @@ class DefaultValuePipeline(object):
             item.setdefault("location_map_info","null")
             item.setdefault("origin_weibo","null")
 
-        spider.logger.info(("default value item", item)) 
+        # spider.logger.info(("default value item", item)) 
         return item 
         
 class ItemValidCheckPipeline(object): 
@@ -124,7 +124,7 @@ class PgsqlDBPipeline(object):
         self.conn.close() 
 
     def process_item(self, item,spider): 
-        spider.logger.info(("process_item by pgsql saver ",item))
+        # spider.logger.info(("process_item by pgsql saver ",item))
         if isinstance(item, RelationshipsItem) : 
             try :
                 self.cur.execute(self.relationship_insert_str.format_map(dict(item)))  
@@ -169,9 +169,12 @@ class QQAITextPolarPipeline(object):
                 result = self.handler.run(item["content"][:60])  # 仅能够处理69个字符串
                 if result['ret'] == 0 :
                     item["polar"]  = result["data"]["polar"] 
-                    item["polar_confidence"] = result["data"]["confd"]   
+                    item["polar_confidence"] = result["data"]["confd"]    
+                else :
+                    item["polar"] = -2 
+                    item["polar_confidence"] = -2                 
             except Exception as e : 
-                item["polar"] = "null" 
-                item["polar_confidence"] = "null"
+                item["polar"] = -2 
+                item["polar_confidence"] = -2 
                 spider.logger.error(("textpolar", e))  
         return item
