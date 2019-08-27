@@ -13,7 +13,7 @@ import time
 from sina.settings import PRIORITY_COMMENT, PRIORITY_RELATIONSHIP, PRIORITY_TWEET, PRIORITY_USER 
 from sina.settings import MAXIMUM_PAGE_OF_COMMENT, MAXIMUM_PAGE_OF_TWEET, MAXIMUM_PAGE_OF_RELATIONSHIP  
 from sina.settings import USER_DISTANCE_LIMIT  
-from sina.settings import MAX_LINK_DEGREE    
+from sina.settings import MAX_LINK_DEGREE ,LINK_DEGREE_EDGE_USER_INCLUDED 
 
 
 class WeiboSpider(RedisSpider):
@@ -24,7 +24,7 @@ class WeiboSpider(RedisSpider):
 
     custom_settings = {
         'CONCURRENT_REQUESTS': 10,
-        "DOWNLOAD_DELAY": 0.3,
+        "DOWNLOAD_DELAY": 0.1,
     }  
 
     def LinkDegreeInc(self, meta) :
@@ -108,9 +108,18 @@ class WeiboSpider(RedisSpider):
             information_item['fans_num'] = int(fans_num[0])
         yield information_item 
         
-        # 获取该用户微博  
-        yield Request(url=self.base_url + '/{}/profile?page=1'.format(information_item['_id']),
-                    callback=self.parse_tweet, priority= PRIORITY_TWEET,meta = response.meta)
+        self.logger.info(response.meta) 
+
+        if LINK_DEGREE_EDGE_USER_INCLUDED :
+            # 获取该用户微博  
+            yield Request(url=self.base_url + '/{}/profile?page=1'.format(information_item['_id']),
+                        callback=self.parse_tweet, priority= PRIORITY_TWEET,meta = response.meta) 
+        else :
+            if response.meta["link_degree"] < MAX_LINK_DEGREE :
+                yield Request(url=self.base_url + '/{}/profile?page=1'.format(information_item['_id']),
+                        callback=self.parse_tweet, priority= PRIORITY_TWEET,meta = response.meta) 
+            else :
+                self.logger.info("ignore the tweets of the edge user %s" % response.meta["item"]["id"] )
 
         # 获取关注列表
         yield Request(url=self.base_url + '/{}/follow?page=1'.format(information_item['_id']),

@@ -88,8 +88,8 @@ RETRY_TIMES = 15
 
 # adjust the scheduler value for different values  
 PRIORITY_TWEET = 0
-PRIORITY_USER = 0 
-PRIORITY_COMMENT = 10
+PRIORITY_USER = 10 
+PRIORITY_COMMENT = 0 
 PRIORITY_RELATIONSHIP = 0
 
 # Miximum Number for Tweet and Comment 
@@ -99,7 +99,10 @@ MAXIMUM_PAGE_OF_COMMENT = 100
 MAXIMUM_PAGE_OF_RELATIONSHIP = 100  
 
 # control the link degree 
-MAX_LINK_DEGREE =  1
+MAX_LINK_DEGREE =  1 
+
+# edge user restriction 
+LINK_DEGREE_EDGE_USER_INCLUDED  = False
 
 # depth contol  
 DEPTH_LIMIT = 0
@@ -109,7 +112,7 @@ DEPTH_STATS_VERBOSE = True
 # Log settings 
 LOG_LEVEL = "INFO"
 LOG_FILE = "weibo_spider.log"  
-LOG_FORMAT = "%(name)-12s: %(levelname)-8s %(filename)s  %(funcName)s  ： %(message)s  "
+LOG_FORMAT = "%(asctime)s %(name)-12s: %(levelname)-8s %(filename)s  %(lineno)s  %(funcName)s  ： %(message)s "
 
 
 USER_DISTANCE_LIMIT = 1
